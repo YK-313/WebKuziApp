@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kuzi-cache-v1';
+const CACHE_NAME = 'kuzi-cache-v2';
 const urlsToCache = [
     './',
     './index.html',

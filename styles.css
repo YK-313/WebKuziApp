@@ -1,7 +1,10 @@
 body {
     font-family: Arial, sans-serif;
     text-align: center;
-    margin-top: 50px;
+    /* 元の 50px から 80px〜100px 程度に増やして全体を下げます */
+    margin-top: 80px; 
+    /* iPhoneのノッチなどを自動で避けるスマホ用のおまじない */
+    padding-top: env(safe-area-inset-top);
 }
 
 h1 {
