@@ -235,7 +235,7 @@ function updateAllRankings(dataArray) {
             const n = Number(d['引いた回数']);
             const k = Number(d['当たった数']);
             
-            // ▼ 追加：N(総数)が大きすぎる場合はブラウザがフリーズするため計算をスキップ ▼
+            // N(総数)が大きすぎる場合はブラウザがフリーズするため計算をスキップ
             if (N > 500) {
                 return { ...d, hasProb: false };
             }
@@ -284,7 +284,8 @@ function renderGodRanking() {
             return;
         }
 
-        sorted.slice(0, 3).forEach((d, i) => {
+        // ▼ slice(0, 10) に変更して上位10件まで表示 ▼
+        sorted.slice(0, 10).forEach((d, i) => {
             const rateStr = formatProb(d.godProb);
             html += `<div class="history-item" style="border-left-color: #ffc107; margin-bottom: 6px; padding: 6px 10px;">
                 <div class="title" style="font-size:14px;">${getRankIcon(i)} ${d['名前']} <span style="color:#d32f2f;">(確率 ${rateStr}%)</span></div>
@@ -311,7 +312,8 @@ function renderGodRanking() {
             return b.totalDraws - a.totalDraws;
         });
 
-        sorted.slice(0, 3).forEach((u, i) => {
+        // ▼ slice(0, 10) に変更 ▼
+        sorted.slice(0, 10).forEach((u, i) => {
             const rate = ((u.totalWins / u.totalDraws) * 100).toFixed(1);
             html += `<div class="history-item" style="border-left-color: #ffc107; margin-bottom: 6px; padding: 6px 10px;">
                 <div class="title" style="font-size:14px;">${getRankIcon(i)} ${u.name} <span style="color:#d32f2f;">(総合勝率 ${rate}%)</span></div>
@@ -344,7 +346,8 @@ function renderBadRanking() {
             return;
         }
 
-        sorted.slice(0, 3).forEach((d, i) => {
+        // ▼ slice(0, 10) に変更 ▼
+        sorted.slice(0, 10).forEach((d, i) => {
             const rateStr = formatProb(d.badProb);
             html += `<div class="history-item" style="border-left-color: #2196f3; background-color: #f4f8fc; margin-bottom: 6px; padding: 6px 10px;">
                 <div class="title" style="font-size:14px;">${getRankIcon(i)} ${d['名前']} <span style="color:#1976d2;">(確率 ${rateStr}%)</span></div>
@@ -371,7 +374,8 @@ function renderBadRanking() {
             return b.totalDraws - a.totalDraws;
         });
 
-        sorted.slice(0, 3).forEach((u, i) => {
+        // ▼ slice(0, 10) に変更 ▼
+        sorted.slice(0, 10).forEach((u, i) => {
             const rate = ((u.totalWins / u.totalDraws) * 100).toFixed(1);
             html += `<div class="history-item" style="border-left-color: #2196f3; background-color: #f4f8fc; margin-bottom: 6px; padding: 6px 10px;">
                 <div class="title" style="font-size:14px;">${getRankIcon(i)} ${u.name} <span style="color:#1976d2;">(総合勝率 ${rate}%)</span></div>
@@ -402,7 +406,8 @@ function renderDrawsRanking() {
     const sorted = Object.values(userStats).filter(u => u.totalDraws > 0).sort((a, b) => b.totalDraws - a.totalDraws);
 
     let html = "";
-    sorted.slice(0, 3).forEach((u, i) => {
+    // ▼ slice(0, 10) に変更 ▼
+    sorted.slice(0, 10).forEach((u, i) => {
         html += `<div class="history-item" style="border-left-color: #4caf50; background-color: #f1f8e9; margin-bottom: 6px; padding: 6px 10px;">
             <div class="title" style="font-size:14px;">${getRankIcon(i)} ${u.name} <span style="color:#388e3c;">(総引回数 ${u.totalDraws}回)</span></div>
             <div class="detail" style="font-size:12px; margin-top:2px;">一番くじスポンサー候補</div>

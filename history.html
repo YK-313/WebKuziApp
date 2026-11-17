@@ -16,6 +16,7 @@
         .history-item .date { font-size: 12px; color: #666; margin-bottom: 5px; }
         .history-item .title { font-weight: bold; font-size: 15px; color: #d32f2f; }
         .history-item .detail { font-size: 14px; margin-top: 5px; color: #444; }
+        
         #history-list {
             max-height: 550px; 
             overflow-y: auto;  
@@ -23,6 +24,15 @@
         }
         #history-list::-webkit-scrollbar { width: 6px; }
         #history-list::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
+
+        /* ▼ ランキングエリア用のスクロール設定を追加 ▼ */
+        .ranking-list {
+            max-height: 350px; /* 約4〜5件分でストップさせる高さ */
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        .ranking-list::-webkit-scrollbar { width: 6px; }
+        .ranking-list::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
     </style>
 </head>
 <body>
@@ -39,7 +49,7 @@
                 <label>合言葉を入力してください</label>
                 <input type="password" id="secret-key" placeholder="合言葉">
             </div>
-            <button class="btn" id="login-btn">戦績を見る</button>
+            <button class="btn" id="login-btn">戦歴を見る</button>
         </div>
 
         <!-- データ入力・表示エリア -->
@@ -53,7 +63,6 @@
                 
                 <div class="input-group">
                     <label>くじの名前</label>
-                    <!-- スマホ対応: ネイティブのプルダウンと入力欄を分離 -->
                     <select id="select-kuzi" style="margin-bottom: 5px; background-color: #f9f9f9;">
                         <option value="">▼ くじ一覧から選ぶ</option>
                     </select>
@@ -62,12 +71,10 @@
 
                 <div style="display: flex; gap: 10px;">
                     <div class="input-group" style="flex:1">
-                        <!-- スマホ対応: ラベルの途中で改行を入れる -->
                         <label style="line-height: 1.4;">引く前の総数<br><span style="font-size: 11px; font-weight: normal; color: #666;">(不明な場合は空白)</span></label>
                         <input type="number" id="input-total" min="0">
                     </div>
                     <div class="input-group" style="flex:1">
-                        <!-- スマホ対応: 並びを揃えるためにこちらにも改行を入れる -->
                         <label style="line-height: 1.4;">引く前のアタリ<br><span style="font-size: 11px; font-weight: normal; color: #666;">(不明な場合は空白)</span></label>
                         <input type="number" id="input-winBefore" min="0">
                     </div>
@@ -100,7 +107,8 @@
                             <option value="god-user">ユーザー総合</option>
                         </select>
                     </div>
-                    <div id="ranking-god-content">
+                    <!-- ▼ class="ranking-list" を追加 ▼ -->
+                    <div id="ranking-god-content" class="ranking-list">
                         <!-- ここにJSで描画 -->
                     </div>
                 </div>
@@ -114,7 +122,8 @@
                             <option value="bad-user">ユーザー総合</option>
                         </select>
                     </div>
-                    <div id="ranking-bad-content">
+                    <!-- ▼ class="ranking-list" を追加 ▼ -->
+                    <div id="ranking-bad-content" class="ranking-list">
                         <!-- ここにJSで描画 -->
                     </div>
                 </div>
@@ -122,7 +131,8 @@
                 <!-- 3. 引きすぎ選手権枠 -->
                 <div>
                     <h4 style="margin: 0 0 8px 0; color: #388e3c; font-size: 15px;">💸 引きすぎ選手権 (ユーザー総合)</h4>
-                    <div id="ranking-draws-content">
+                    <!-- ▼ class="ranking-list" を追加 ▼ -->
+                    <div id="ranking-draws-content" class="ranking-list">
                         <!-- ここにJSで描画 -->
                     </div>
                 </div>
@@ -130,6 +140,6 @@
 
         </div>
     </main>
-    <script src="history.js?v=2"></script>
+    <script src="history.js?v=4"></script>
 </body>
 </html>
