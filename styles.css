@@ -11,6 +11,13 @@ h1 {
     font-size: 48px;
     color: #333;
 }
+@media (max-width: 600px) {
+    h1 {
+        font-size: 24px; /* スマホの画面幅に収まるサイズに縮小 */
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+}
 
 .center-table {
     margin-left: auto;
