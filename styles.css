@@ -13,7 +13,7 @@ h1 {
 }
 @media (max-width: 800px) {
     h1 {
-        font-size: 12px; /* スマホの画面幅に収まるサイズに縮小 */
+        font-size: 24px; /* スマホの画面幅に収まるサイズに縮小 */
         margin-left: 10px;
         margin-right: 10px;
     }
