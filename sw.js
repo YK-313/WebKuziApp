@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kuzi-cache-v7'; // 数字を上げる
+const CACHE_NAME = 'kuzi-cache-v8'; // 数字を上げる
 const urlsToCache = [
     './',
     './index.html',

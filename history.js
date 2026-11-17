@@ -43,7 +43,7 @@ async function loadHistory() {
             mainContent.style.display = 'block'; 
 
             const selectKuzi = document.getElementById('select-kuzi');
-            selectKuzi.innerHTML = '<option value="">▼ 過去のくじから選ぶ</option>';
+            selectKuzi.innerHTML = '<option value="">▼くじ一覧から選ぶ</option>';
             
             if (json.kuziList && json.kuziList.length > 0) {
                 json.kuziList.forEach(name => {
