@@ -281,7 +281,7 @@ function renderBadRanking() {
             const rate = ((Number(d['当たった数']) / Number(d['引いた回数'])) * 100).toFixed(1);
             html += `<div class="history-item" style="border-left-color: #2196f3; background-color: #f4f8fc; margin-bottom: 6px; padding: 6px 10px;">
                 <div class="title" style="font-size:14px;">${getRankIcon(i)} ${d['名前']} <span style="color:#1976d2;">(勝率 ${rate}%)</span></div>
-                <div class="detail" style="font-size:12px; margin-top:2px;">${d['引いた回数']}回引いて ${d['当たった数']}個 ｜ 🎁 ${d['引いたくじの名前']}</div>
+                <div class="detail" style="font-size:12px; margin-top:2px;">${d['引いた回数']}回中 ${d['当たった数']}個 ｜ 🎁 ${d['引いたくじの名前']}</div>
             </div>`;
         });
     } else {
@@ -305,7 +305,7 @@ function renderBadRanking() {
             const rate = ((u.totalWins / u.totalDraws) * 100).toFixed(1);
             html += `<div class="history-item" style="border-left-color: #2196f3; background-color: #f4f8fc; margin-bottom: 6px; padding: 6px 10px;">
                 <div class="title" style="font-size:14px;">${getRankIcon(i)} ${u.name} <span style="color:#1976d2;">(総合勝率 ${rate}%)</span></div>
-                <div class="detail" style="font-size:12px; margin-top:2px;">累計 ${u.totalDraws}回引いて ${u.totalWins}個</div>
+                <div class="detail" style="font-size:12px; margin-top:2px;">累計 ${u.totalDraws}回中 ${u.totalWins}個当選</div>
             </div>`;
         });
     }
