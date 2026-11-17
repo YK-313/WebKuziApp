@@ -19,6 +19,13 @@ document.getElementById('login-btn').addEventListener('click', loadHistory);
 // 「最新に更新」ボタン
 document.getElementById('reload-btn').addEventListener('click', loadHistory);
 
+// ▼ くじの名前プルダウン変更時にテキストボックスに反映させる ▼
+document.getElementById('select-kuzi').addEventListener('change', (e) => {
+    if (e.target.value) {
+        document.getElementById('input-kuzi').value = e.target.value;
+    }
+});
+
 // GASからデータを読み込む関数
 async function loadHistory() {
     const secret = secretInput.value.trim();
@@ -32,22 +39,26 @@ async function loadHistory() {
         const json = await res.json();
 
         if (json.status === "success") {
-            // 合言葉が正解なら、次から打たなくていいように保存
+            // 合言葉が正解なら保存
             localStorage.setItem('kuzi_secret', secret);
-            authSection.style.display = 'none'; // 認証枠を隠す
-            mainContent.style.display = 'block'; // メイン画面を出す
-            const datalist = document.getElementById('kuzi-list');
-            datalist.innerHTML = ""; // 一旦空にする
+            authSection.style.display = 'none'; 
+            mainContent.style.display = 'block'; 
+
+            // くじの名前リストをプルダウンにセットする
+            const selectKuzi = document.getElementById('select-kuzi');
+            selectKuzi.innerHTML = '<option value="">▼ 過去のくじから選ぶ</option>'; // 一旦初期化
+            
             if (json.kuziList && json.kuziList.length > 0) {
                 json.kuziList.forEach(name => {
                     const option = document.createElement('option');
                     option.value = name;
-                    datalist.appendChild(option);
+                    option.textContent = name; // selectのoptionにはtextContentが必要
+                    selectKuzi.appendChild(option);
                 });
             }
             renderHistory(json.data);
         } else {
-            alert(json.message); // 「合言葉が違います」等
+            alert(json.message);
             document.getElementById('login-btn').innerText = "戦歴を見る";
         }
     } catch (e) {
@@ -65,7 +76,6 @@ function renderHistory(dataArray) {
     }
 
     dataArray.forEach(data => {
-        // ▼ 空白の場合は「？」を入れる処理を追加 ▼
         const t = data['引く前の総数'] !== "" ? data['引く前の総数'] : "？";
         const w = data['引く前の当たり数'] !== "" ? data['引く前の当たり数'] : "？";
 
@@ -90,17 +100,15 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     const secret = secretInput.value.trim();
     const name = document.getElementById('input-name').value.trim();
     const kuziName = document.getElementById('input-kuzi').value.trim();
-    const total = document.getElementById('input-total').value; // 空白許可
-    const winBefore = document.getElementById('input-winBefore').value; // 空白許可
+    const total = document.getElementById('input-total').value; 
+    const winBefore = document.getElementById('input-winBefore').value; 
     const draws = document.getElementById('input-draws').value;
     const winAfter = document.getElementById('input-winAfter').value;
 
-    // 必須項目のチェック（総数と当たり数は外す）
     if(!name || !kuziName || !draws || !winAfter) {
         return alert("名前、くじの名前、引いた回数、アタリの当選数は必須です");
     }
 
-    // マイナス値のチェック
     if (Number(draws) < 0 || Number(winAfter) < 0 || (total !== "" && Number(total) < 0) || (winBefore !== "" && Number(winBefore) < 0)) {
         return alert("マイナスの値は入力できません");
     }
@@ -108,34 +116,19 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     const d = parseInt(draws, 10);
     const wa = parseInt(winAfter, 10);
 
-    // 論理チェック1: 引いた回数より当たった数が多いのはNG
-    if (d < wa) {
-        return alert("値が正しくありません（引いた回数より、当たった数の方が多くなっています）");
-    }
-
-    // 論理チェック2: 引く前の総数が入力されている場合
+    if (d < wa) return alert("値が正しくありません（引いた回数より、当たった数の方が多くなっています）");
     if (total !== "") {
         const t = parseInt(total, 10);
-        if (t < d) {
-            return alert("値が正しくありません（引く前の総数より、引いた回数の方が多くなっています）");
-        }
+        if (t < d) return alert("値が正しくありません（引く前の総数より、引いた回数の方が多くなっています）");
     }
-
-    // 論理チェック3: 当たり数が入力されている場合
     if (winBefore !== "") {
         const wb = parseInt(winBefore, 10);
-        if (wb < wa) {
-            return alert("値が正しくありません（引く前のアタリの数より、アタリ当選数の方が多くなっています）");
-        }
+        if (wb < wa) return alert("値が正しくありません（引く前のアタリの数より、アタリ当選数の方が多くなっています）");
     }
-
-    // 論理チェック4: 総数と当たり数の両方が入力されている場合
     if (total !== "" && winBefore !== "") {
         const t = parseInt(total, 10);
         const wb = parseInt(winBefore, 10);
-        if (t < wb) {
-            return alert("値が正しくありません（引く前の総数より、当たり数の方が多くなっています）");
-        }
+        if (t < wb) return alert("値が正しくありません（引く前の総数より、当たり数の方が多くなっています）");
     }
 
     const btn = document.getElementById('submit-btn');
@@ -163,8 +156,8 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
         if(json.status === "success") {
             alert("戦歴を記録しました！");
             
-            // ★以前ここにあった input-draws と input-winAfter を "" (空) にする処理を消去しました。
-            // これにより、送信後も全項目がそのまま保持されます。
+            // ★送信完了後、プルダウンの選択をリセット（テキストボックスはそのまま）
+            document.getElementById('select-kuzi').value = "";
             
             loadHistory();
         } else {
@@ -177,16 +170,15 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
         btn.disabled = false;
     }
 });
+
 // ==========================================
 // ランキング機能 (枠ごとに独立)
 // ==========================================
 let currentDataArray = [];
 
-// セレクトボックスの変更イベントをそれぞれ登録
 document.getElementById('ranking-god-type').addEventListener('change', renderGodRanking);
 document.getElementById('ranking-bad-type').addEventListener('change', renderBadRanking);
 
-// データをセットされた時にすべてのランキングを更新する関数
 function updateAllRankings(dataArray) {
     currentDataArray = dataArray;
     renderGodRanking();
@@ -194,7 +186,6 @@ function updateAllRankings(dataArray) {
     renderDrawsRanking();
 }
 
-// 王冠アイコンのヘルパー
 const getRankIcon = (index) => {
     if(index === 0) return "🥇";
     if(index === 1) return "🥈";
@@ -202,7 +193,6 @@ const getRankIcon = (index) => {
     return `${index + 1}位`;
 };
 
-// 1. 神引きランキングの描画
 function renderGodRanking() {
     const type = document.getElementById('ranking-god-type').value;
     const content = document.getElementById('ranking-god-content');
@@ -257,7 +247,6 @@ function renderGodRanking() {
     content.innerHTML = html || "<p style='font-size:13px; color:#666;'>該当データなし</p>";
 }
 
-// 2. 爆死ランキングの描画
 function renderBadRanking() {
     const type = document.getElementById('ranking-bad-type').value;
     const content = document.getElementById('ranking-bad-content');
@@ -312,7 +301,6 @@ function renderBadRanking() {
     content.innerHTML = html || "<p style='font-size:13px; color:#666;'>該当データなし</p>";
 }
 
-// 3. 引きすぎ選手権の描画
 function renderDrawsRanking() {
     const content = document.getElementById('ranking-draws-content');
     content.innerHTML = "";

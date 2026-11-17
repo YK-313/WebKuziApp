@@ -11,15 +11,15 @@
         .card h3 { margin: 0 0 10px 0; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #333;}
         .input-group { margin-bottom: 10px; text-align: left; }
         .input-group label { display: block; font-size: 14px; margin-bottom: 5px; }
-        .input-group input { width: 100%; padding: 8px; box-sizing: border-box; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+        .input-group input, .input-group select { width: 100%; padding: 8px; box-sizing: border-box; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
         .history-item { border-left: 4px solid #ff9800; background: #fdfdfd; padding: 10px; margin-bottom: 10px; border-radius: 0 4px 4px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: left;}
         .history-item .date { font-size: 12px; color: #666; margin-bottom: 5px; }
         .history-item .title { font-weight: bold; font-size: 15px; color: #d32f2f; }
         .history-item .detail { font-size: 14px; margin-top: 5px; color: #444; }
         #history-list {
-            max-height: 550px; /* 約7件分でストップさせる高さ */
-            overflow-y: auto;  /* はみ出た分は縦スクロールさせる */
-            padding-right: 5px; /* スクロールバーが文字に被らないように余白 */
+            max-height: 550px; 
+            overflow-y: auto;  
+            padding-right: 5px; 
         }
         #history-list::-webkit-scrollbar { width: 6px; }
         #history-list::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
@@ -39,28 +39,40 @@
                 <label>合言葉を入力してください</label>
                 <input type="password" id="secret-key" placeholder="合言葉">
             </div>
-            <button class="btn" id="login-btn">戦歴を見る</button>
+            <button class="btn" id="login-btn">戦績を見る</button>
         </div>
 
-        <!-- データ入力・表示エリア (合言葉が合うまで隠しておく) -->
+        <!-- データ入力・表示エリア -->
         <div id="main-content" style="display: none;">
             <div class="card">
                 <h3>戦績を登録する</h3>
-                <div class="input-group"><label>名前 (個人情報は避けること)</label><input type="text" id="input-name" placeholder="例: ハイエナ"></div>
+                <div class="input-group">
+                    <label>名前 (個人情報は避けること)</label>
+                    <input type="text" id="input-name" placeholder="例: ハイエナ">
+                </div>
+                
                 <div class="input-group">
                     <label>くじの名前</label>
-                    <!-- list="kuzi-list" を追加して、下のdatalistと紐付けます -->
-                    <input type="text" id="input-kuzi" list="kuzi-list" placeholder="選択するか入力してください" autocomplete="off">
-                    <datalist id="kuzi-list">
-                        <!-- ここにJSでシートのデータが挿入されます -->
-                    </datalist>
+                    <!-- スマホ対応: ネイティブのプルダウンと入力欄を分離 -->
+                    <select id="select-kuzi" style="margin-bottom: 5px; background-color: #f9f9f9;">
+                        <option value="">▼ 過去のくじから選ぶ</option>
+                    </select>
+                    <input type="text" id="input-kuzi" placeholder="直接入力もできます" autocomplete="off">
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div class="input-group" style="flex:1">
+                        <!-- スマホ対応: ラベルの途中で改行を入れる -->
+                        <label style="line-height: 1.4;">引く前の総数<br><span style="font-size: 11px; font-weight: normal; color: #666;">(不明な場合は空白)</span></label>
+                        <input type="number" id="input-total" min="0">
+                    </div>
+                    <div class="input-group" style="flex:1">
+                        <!-- スマホ対応: 並びを揃えるためにこちらにも改行を入れる -->
+                        <label style="line-height: 1.4;">引く前のアタリ<br><span style="font-size: 11px; font-weight: normal; color: #666;">(不明な場合は空白)</span></label>
+                        <input type="number" id="input-winBefore" min="0">
+                    </div>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <div class="input-group" style="flex:1"><label>引く前の総数 (不明な場合は空白)</label><input type="number" id="input-total" min="0"></div>
-                    <div class="input-group" style="flex:1"><label>引く前のアタリの数 (不明な場合は空白)</label><input type="number" id="input-winBefore" min="0"></div>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <!-- min="0" と value="10" を追加 -->
                     <div class="input-group" style="flex:1"><label>引いた回数</label><input type="number" id="input-draws" min="0" value="10"></div>
                     <div class="input-group" style="flex:1"><label>アタリの当選数</label><input type="number" id="input-winAfter" min="0"></div>
                 </div>
@@ -118,6 +130,6 @@
 
         </div>
     </main>
-    <script src="history.js?v=1"></script>
+    <script src="history.js?v=2"></script>
 </body>
 </html>
