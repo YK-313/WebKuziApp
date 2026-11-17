@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>戦歴掲示板 - 一番くじ</title>
+    <link rel="stylesheet" href="styles.css?v=3">
+    <style>
+        .container { width: 95%; max-width: 600px; margin: 0 auto; padding-bottom: 30px; }
+        .card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; text-align: left; }
+        .card h3 { margin: 0 0 10px 0; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #333;}
+        .input-group { margin-bottom: 10px; text-align: left; }
+        .input-group label { display: block; font-size: 14px; margin-bottom: 5px; }
+        .input-group input { width: 100%; padding: 8px; box-sizing: border-box; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+        .history-item { border-left: 4px solid #ff9800; background: #fdfdfd; padding: 10px; margin-bottom: 10px; border-radius: 0 4px 4px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: left;}
+        .history-item .date { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .history-item .title { font-weight: bold; font-size: 15px; color: #d32f2f; }
+        .history-item .detail { font-size: 14px; margin-top: 5px; color: #444; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>仲間内 戦歴掲示板</h1>
+    </header>
+    <main class="container">
+        <a href="index.html" class="btn" style="background-color: #666; margin-bottom: 20px;">トップに戻る</a>
+
+        <!-- 合言葉入力エリア -->
+        <div class="card" id="auth-section">
+            <h3>セキュリティ認証</h3>
+            <div class="input-group">
+                <label>合言葉を入力してください</label>
+                <input type="password" id="secret-key" placeholder="合言葉">
+            </div>
+            <button class="btn" id="login-btn">戦歴を見る</button>
+        </div>
+
+        <!-- データ入力・表示エリア (合言葉が合うまで隠しておく) -->
+        <div id="main-content" style="display: none;">
+            <div class="card">
+                <h3>戦歴を登録する</h3>
+                <div class="input-group"><label>名前</label><input type="text" id="input-name" placeholder="例: 笠井"></div>
+                <div class="input-group"><label>くじの名前</label><input type="text" id="input-kuzi" placeholder="例: モンハン"></div>
+                <div style="display: flex; gap: 10px;">
+                    <div class="input-group" style="flex:1"><label>引く前の総数</label><input type="number" id="input-total"></div>
+                    <div class="input-group" style="flex:1"><label>当たり数</label><input type="number" id="input-winBefore"></div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <div class="input-group" style="flex:1"><label>引いた回数</label><input type="number" id="input-draws"></div>
+                    <div class="input-group" style="flex:1"><label>当たった数</label><input type="number" id="input-winAfter"></div>
+                </div>
+                <button class="btn" id="submit-btn" style="background-color: #e53935;">この戦歴を記録する</button>
+            </div>
+
+            <div class="card">
+                <h3>みんなの戦歴</h3>
+                <button class="btn" id="reload-btn" style="margin-bottom:15px;">🔄 最新に更新</button>
+                <div id="history-list">
+                    <!-- ここにJSで戦歴が追加されます -->
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="history.js?v=1"></script>
+</body>
+</html>
