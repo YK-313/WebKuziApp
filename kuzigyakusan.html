@@ -81,5 +81,12 @@
 
     <!-- 処理スクリプトの読み込み -->
     <script src="kuzigyakusan.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
 </body>
 </html>
