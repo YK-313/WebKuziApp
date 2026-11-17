@@ -137,9 +137,10 @@ function renderChart(labels, data) {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false, // ★これを追加（枠に合わせて広げる）
             plugins: {
                 legend: {
-                    labels: { color: '#000000', font: { size: 20 } }
+                    labels: { color: '#000000', font: { size: 14 } } // ★20から14に変更
                 }
             },
             scales: {
@@ -148,7 +149,7 @@ function renderChart(labels, data) {
                         display: true,
                         text: 'あたりが一つ以上出る確率 (%)',
                         color: '#000000',
-                        font: { size: 20 }
+                        font: { size: 14 } // ★20から14に変更
                     },
                     beginAtZero: true,
                     max: 100,
@@ -159,7 +160,7 @@ function renderChart(labels, data) {
                         display: true,
                         text: '購入枚数',
                         color: '#000000',
-                        font: { size: 20 }
+                        font: { size: 14 } // ★20から14に変更
                     },
                 },
             },
