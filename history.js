@@ -34,25 +34,22 @@ async function loadHistory() {
     document.getElementById('login-btn').innerText = "読み込み中...";
     
     try {
-        // GETリクエストで合言葉を送信
         const res = await fetch(`${GAS_URL}?secret=${encodeURIComponent(secret)}`);
         const json = await res.json();
 
         if (json.status === "success") {
-            // 合言葉が正解なら保存
             localStorage.setItem('kuzi_secret', secret);
             authSection.style.display = 'none'; 
             mainContent.style.display = 'block'; 
 
-            // くじの名前リストをプルダウンにセットする
             const selectKuzi = document.getElementById('select-kuzi');
-            selectKuzi.innerHTML = '<option value="">▼ 過去のくじから選ぶ</option>'; // 一旦初期化
+            selectKuzi.innerHTML = '<option value="">▼ 過去のくじから選ぶ</option>';
             
             if (json.kuziList && json.kuziList.length > 0) {
                 json.kuziList.forEach(name => {
                     const option = document.createElement('option');
                     option.value = name;
-                    option.textContent = name; // selectのoptionにはtextContentが必要
+                    option.textContent = name;
                     selectKuzi.appendChild(option);
                 });
             }
@@ -92,6 +89,8 @@ function renderHistory(dataArray) {
         historyList.appendChild(div);
     });
     document.getElementById('login-btn').innerText = "戦歴を見る";
+    
+    // データ読み込み時に一度だけ全データを計算・加工する
     updateAllRankings(dataArray);
 }
 
@@ -155,10 +154,7 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 
         if(json.status === "success") {
             alert("戦歴を記録しました！");
-            
-            // ★送信完了後、プルダウンの選択をリセット（テキストボックスはそのまま）
             document.getElementById('select-kuzi').value = "";
-            
             loadHistory();
         } else {
             alert(json.message);
@@ -172,6 +168,57 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 });
 
 // ==========================================
+// 確率計算（超幾何分布）用関数 (BigInt使用)
+// ==========================================
+function combinationsBigInt(n, r) {
+    if (n < 0n || r < 0n || r > n) return 0n;
+    if (r === 0n || r === n) return 1n;
+    if (r > n / 2n) r = n - r;
+    let c = 1n;
+    for (let i = 1n; i <= r; i++) {
+        c = (c * (n - i + 1n)) / i;
+    }
+    return c;
+}
+
+function getHypergeometricProb(N, K, n, k) {
+    const N_b = BigInt(N), K_b = BigInt(K), n_b = BigInt(n), k_b = BigInt(k);
+    if (k_b > K_b || (n_b - k_b) > (N_b - K_b) || k_b < 0n || n_b < 0n) return 0;
+    
+    const num1 = combinationsBigInt(K_b, k_b);
+    const num2 = combinationsBigInt(N_b - K_b, n_b - k_b);
+    const den = combinationsBigInt(N_b, n_b);
+    
+    const MULTIPLIER = 1000000000000000000n;
+    const probBig = (num1 * num2 * MULTIPLIER) / den;
+    return Number(probBig) / 1000000000000000000;
+}
+
+function getGodDrawProb(N, K, n, k) {
+    let prob = 0;
+    const maxK = Math.min(n, K);
+    for (let x = k; x <= maxK; x++) {
+        prob += getHypergeometricProb(N, K, n, x);
+    }
+    return prob;
+}
+
+function getBadDrawProb(N, K, n, k) {
+    let prob = 0;
+    const minK = Math.max(0, n - (N - K));
+    for (let x = minK; x <= k; x++) {
+        prob += getHypergeometricProb(N, K, n, x);
+    }
+    return prob;
+}
+
+function formatProb(prob) {
+    const p = prob * 100;
+    if (p < 0.01 && p > 0) return "< 0.01"; 
+    return p.toFixed(2);
+}
+
+// ==========================================
 // ランキング機能 (枠ごとに独立)
 // ==========================================
 let currentDataArray = [];
@@ -180,7 +227,29 @@ document.getElementById('ranking-god-type').addEventListener('change', renderGod
 document.getElementById('ranking-bad-type').addEventListener('change', renderBadRanking);
 
 function updateAllRankings(dataArray) {
-    currentDataArray = dataArray;
+    // データを読み込んだタイミングで、各戦績データの確率を「事前計算」して持たせておく
+    currentDataArray = dataArray.map(d => {
+        if (d['引く前の総数'] !== "" && d['引く前の当たり数'] !== "" && Number(d['引いた回数']) > 0) {
+            const N = Number(d['引く前の総数']);
+            const K = Number(d['引く前の当たり数']);
+            const n = Number(d['引いた回数']);
+            const k = Number(d['当たった数']);
+            
+            // ▼ 追加：N(総数)が大きすぎる場合はブラウザがフリーズするため計算をスキップ ▼
+            if (N > 500) {
+                return { ...d, hasProb: false };
+            }
+
+            return {
+                ...d,
+                hasProb: true,
+                godProb: getGodDrawProb(N, K, n, k),
+                badProb: getBadDrawProb(N, K, n, k)
+            };
+        }
+        return { ...d, hasProb: false };
+    });
+
     renderGodRanking();
     renderBadRanking();
     renderDrawsRanking();
@@ -193,6 +262,7 @@ const getRankIcon = (index) => {
     return `${index + 1}位`;
 };
 
+// 1. 神引きランキングの描画
 function renderGodRanking() {
     const type = document.getElementById('ranking-god-type').value;
     const content = document.getElementById('ranking-god-content');
@@ -205,18 +275,23 @@ function renderGodRanking() {
 
     let html = "";
     if (type === 'god-record') {
-        const sorted = [...currentDataArray].filter(d => Number(d['引いた回数']) > 0).sort((a, b) => {
-            const rateA = Number(a['当たった数']) / Number(a['引いた回数']);
-            const rateB = Number(b['当たった数']) / Number(b['引いた回数']);
-            if (rateB !== rateA) return rateB - rateA; 
-            return Number(b['引いた回数']) - Number(a['引いた回数']); 
-        });
+        const sorted = currentDataArray
+            .filter(d => d.hasProb && d.godProb < 0.999)
+            .sort((a, b) => a.godProb - b.godProb);
+
+        if(sorted.length === 0) {
+            content.innerHTML = "<p style='font-size:13px; color:#666;'>該当データなし（確率計算できる記録がありません）</p>";
+            return;
+        }
 
         sorted.slice(0, 3).forEach((d, i) => {
-            const rate = ((Number(d['当たった数']) / Number(d['引いた回数'])) * 100).toFixed(1);
+            const rateStr = formatProb(d.godProb);
             html += `<div class="history-item" style="border-left-color: #ffc107; margin-bottom: 6px; padding: 6px 10px;">
-                <div class="title" style="font-size:14px;">${getRankIcon(i)} ${d['名前']} <span style="color:#d32f2f;">(勝率 ${rate}%)</span></div>
-                <div class="detail" style="font-size:12px; margin-top:2px;">${d['引いた回数']}回中 ${d['当たった数']}個 ｜ 🎁 ${d['引いたくじの名前']}</div>
+                <div class="title" style="font-size:14px;">${getRankIcon(i)} ${d['名前']} <span style="color:#d32f2f;">(確率 ${rateStr}%)</span></div>
+                <div class="detail" style="font-size:12px; margin-top:2px;">
+                    残り${d['引く前の総数']}枚(当${d['引く前の当たり数']})から ${d['引いた回数']}回で ${d['当たった数']}個！<br>
+                    <span style="color:#666; font-size:11px;">🎁 ${d['引いたくじの名前']}</span>
+                </div>
             </div>`;
         });
     } else {
@@ -247,6 +322,7 @@ function renderGodRanking() {
     content.innerHTML = html || "<p style='font-size:13px; color:#666;'>該当データなし</p>";
 }
 
+// 2. 爆死ランキングの描画
 function renderBadRanking() {
     const type = document.getElementById('ranking-bad-type').value;
     const content = document.getElementById('ranking-bad-content');
@@ -259,18 +335,23 @@ function renderBadRanking() {
 
     let html = "";
     if (type === 'bad-record') {
-        const sorted = [...currentDataArray].filter(d => Number(d['引いた回数']) > 0).sort((a, b) => {
-            const rateA = Number(a['当たった数']) / Number(a['引いた回数']);
-            const rateB = Number(b['当たった数']) / Number(b['引いた回数']);
-            if (rateA !== rateB) return rateA - rateB;
-            return Number(b['引いた回数']) - Number(a['引いた回数']);
-        });
+        const sorted = currentDataArray
+            .filter(d => d.hasProb && d.badProb < 0.999) 
+            .sort((a, b) => a.badProb - b.badProb);
+
+        if(sorted.length === 0) {
+            content.innerHTML = "<p style='font-size:13px; color:#666;'>該当データなし（確率計算できる記録がありません）</p>";
+            return;
+        }
 
         sorted.slice(0, 3).forEach((d, i) => {
-            const rate = ((Number(d['当たった数']) / Number(d['引いた回数'])) * 100).toFixed(1);
+            const rateStr = formatProb(d.badProb);
             html += `<div class="history-item" style="border-left-color: #2196f3; background-color: #f4f8fc; margin-bottom: 6px; padding: 6px 10px;">
-                <div class="title" style="font-size:14px;">${getRankIcon(i)} ${d['名前']} <span style="color:#1976d2;">(勝率 ${rate}%)</span></div>
-                <div class="detail" style="font-size:12px; margin-top:2px;">${d['引いた回数']}回中 ${d['当たった数']}個 ｜ 🎁 ${d['引いたくじの名前']}</div>
+                <div class="title" style="font-size:14px;">${getRankIcon(i)} ${d['名前']} <span style="color:#1976d2;">(確率 ${rateStr}%)</span></div>
+                <div class="detail" style="font-size:12px; margin-top:2px;">
+                    残り${d['引く前の総数']}枚(当${d['引く前の当たり数']})から ${d['引いた回数']}回で ${d['当たった数']}個...<br>
+                    <span style="color:#666; font-size:11px;">🎁 ${d['引いたくじの名前']}</span>
+                </div>
             </div>`;
         });
     } else {
@@ -301,6 +382,7 @@ function renderBadRanking() {
     content.innerHTML = html || "<p style='font-size:13px; color:#666;'>該当データなし</p>";
 }
 
+// 3. 引きすぎ選手権の描画
 function renderDrawsRanking() {
     const content = document.getElementById('ranking-draws-content');
     content.innerHTML = "";
