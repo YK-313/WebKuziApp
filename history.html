@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>戦歴掲示板 - 一番くじ</title>
+    <title>戦績掲示板 - 一番くじ</title>
     <link rel="stylesheet" href="styles.css?v=3">
     <style>
         .container { width: 95%; max-width: 600px; margin: 0 auto; padding-bottom: 30px; }
@@ -16,11 +16,18 @@
         .history-item .date { font-size: 12px; color: #666; margin-bottom: 5px; }
         .history-item .title { font-weight: bold; font-size: 15px; color: #d32f2f; }
         .history-item .detail { font-size: 14px; margin-top: 5px; color: #444; }
+        #history-list {
+            max-height: 550px; /* 約7件分でストップさせる高さ */
+            overflow-y: auto;  /* はみ出た分は縦スクロールさせる */
+            padding-right: 5px; /* スクロールバーが文字に被らないように余白 */
+        }
+        #history-list::-webkit-scrollbar { width: 6px; }
+        #history-list::-webkit-scrollbar-thumb { background-color: #ccc; border-radius: 3px; }
     </style>
 </head>
 <body>
     <header>
-        <h1>仲間内 戦歴掲示板</h1>
+        <h1>戦績掲示板</h1>
     </header>
     <main class="container">
         <a href="index.html" class="btn" style="background-color: #666; margin-bottom: 20px;">トップに戻る</a>
@@ -38,27 +45,77 @@
         <!-- データ入力・表示エリア (合言葉が合うまで隠しておく) -->
         <div id="main-content" style="display: none;">
             <div class="card">
-                <h3>戦歴を登録する</h3>
-                <div class="input-group"><label>名前</label><input type="text" id="input-name" placeholder="例: 笠井"></div>
-                <div class="input-group"><label>くじの名前</label><input type="text" id="input-kuzi" placeholder="例: モンハン"></div>
-                <div style="display: flex; gap: 10px;">
-                    <div class="input-group" style="flex:1"><label>引く前の総数</label><input type="number" id="input-total"></div>
-                    <div class="input-group" style="flex:1"><label>当たり数</label><input type="number" id="input-winBefore"></div>
+                <h3>戦績を登録する</h3>
+                <div class="input-group"><label>名前 (個人情報は避けること)</label><input type="text" id="input-name" placeholder="例: ハイエナ"></div>
+                <div class="input-group">
+                    <label>くじの名前</label>
+                    <!-- list="kuzi-list" を追加して、下のdatalistと紐付けます -->
+                    <input type="text" id="input-kuzi" list="kuzi-list" placeholder="選択するか入力してください" autocomplete="off">
+                    <datalist id="kuzi-list">
+                        <!-- ここにJSでシートのデータが挿入されます -->
+                    </datalist>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <div class="input-group" style="flex:1"><label>引いた回数</label><input type="number" id="input-draws"></div>
-                    <div class="input-group" style="flex:1"><label>当たった数</label><input type="number" id="input-winAfter"></div>
+                    <div class="input-group" style="flex:1"><label>引く前の総数 (不明な場合は空白)</label><input type="number" id="input-total" min="0"></div>
+                    <div class="input-group" style="flex:1"><label>引く前のアタリの数 (不明な場合は空白)</label><input type="number" id="input-winBefore" min="0"></div>
                 </div>
-                <button class="btn" id="submit-btn" style="background-color: #e53935;">この戦歴を記録する</button>
+                <div style="display: flex; gap: 10px;">
+                    <!-- min="0" と value="10" を追加 -->
+                    <div class="input-group" style="flex:1"><label>引いた回数</label><input type="number" id="input-draws" min="0" value="10"></div>
+                    <div class="input-group" style="flex:1"><label>アタリの当選数</label><input type="number" id="input-winAfter" min="0"></div>
+                </div>
+                <button class="btn" id="submit-btn" style="background-color: #e53935;">この戦績を記録する</button>
             </div>
 
             <div class="card">
-                <h3>みんなの戦歴</h3>
-                <button class="btn" id="reload-btn" style="margin-bottom:15px;">🔄 最新に更新</button>
+                <h3>最新の戦績</h3>
+                <button class="btn" id="reload-btn" style="margin-bottom:15px;">🔄 更新</button>
                 <div id="history-list">
-                    <!-- ここにJSで戦歴が追加されます -->
+                    <!-- ここにJSで戦績が追加されます -->
                 </div>
             </div>
+
+            <!-- ランキングエリア -->
+            <div class="card" id="ranking-section">
+                <h3>🏆 ランキングコーナー</h3>
+
+                <!-- 1. 神引きランキング枠 -->
+                <div style="margin-bottom: 20px; border-bottom: 1px dashed #ddd; padding-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="margin: 0; color: #f57f17; font-size: 15px;">😇 神引きランキング</h4>
+                        <select id="ranking-god-type" style="padding: 4px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option value="god-record">1回の記録ごと</option>
+                            <option value="god-user">ユーザー総合</option>
+                        </select>
+                    </div>
+                    <div id="ranking-god-content">
+                        <!-- ここにJSで描画 -->
+                    </div>
+                </div>
+
+                <!-- 2. 爆死ランキング枠 -->
+                <div style="margin-bottom: 20px; border-bottom: 1px dashed #ddd; padding-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="margin: 0; color: #1976d2; font-size: 15px;">😭 爆死ランキング</h4>
+                        <select id="ranking-bad-type" style="padding: 4px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option value="bad-record">1回の記録ごと</option>
+                            <option value="bad-user">ユーザー総合</option>
+                        </select>
+                    </div>
+                    <div id="ranking-bad-content">
+                        <!-- ここにJSで描画 -->
+                    </div>
+                </div>
+
+                <!-- 3. 引きすぎ選手権枠 -->
+                <div>
+                    <h4 style="margin: 0 0 8px 0; color: #388e3c; font-size: 15px;">💸 引きすぎ選手権 (ユーザー総合)</h4>
+                    <div id="ranking-draws-content">
+                        <!-- ここにJSで描画 -->
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
     <script src="history.js?v=1"></script>

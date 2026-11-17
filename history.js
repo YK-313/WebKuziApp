@@ -34,9 +34,17 @@ async function loadHistory() {
         if (json.status === "success") {
             // 合言葉が正解なら、次から打たなくていいように保存
             localStorage.setItem('kuzi_secret', secret);
-            
             authSection.style.display = 'none'; // 認証枠を隠す
             mainContent.style.display = 'block'; // メイン画面を出す
+            const datalist = document.getElementById('kuzi-list');
+            datalist.innerHTML = ""; // 一旦空にする
+            if (json.kuziList && json.kuziList.length > 0) {
+                json.kuziList.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    datalist.appendChild(option);
+                });
+            }
             renderHistory(json.data);
         } else {
             alert(json.message); // 「合言葉が違います」等
@@ -57,20 +65,24 @@ function renderHistory(dataArray) {
     }
 
     dataArray.forEach(data => {
-        // アプリ側で面白指標（引きの強さなど）を計算して表示する仕組み
+        // ▼ 空白の場合は「？」を入れる処理を追加 ▼
+        const t = data['引く前の総数'] !== "" ? data['引く前の総数'] : "？";
+        const w = data['引く前の当たり数'] !== "" ? data['引く前の当たり数'] : "？";
+
         const div = document.createElement('div');
         div.className = "history-item";
         div.innerHTML = `
             <div class="date">${data['日時']} ｜ 👤 ${data['名前']}</div>
             <div class="title">🎁 ${data['引いたくじの名前']}</div>
             <div class="detail">
-                残り ${data['引く前の総数']}枚 (当たり ${data['引く前の当たり数']}枚) から<br>
+                残り ${t}枚 (当たり ${w}枚) から<br>
                 <strong>${data['引いた回数']}回</strong> 引いて <strong>${data['当たった数']}個</strong> 当選！
             </div>
         `;
         historyList.appendChild(div);
     });
     document.getElementById('login-btn').innerText = "戦歴を見る";
+    updateAllRankings(dataArray);
 }
 
 // 「戦歴を記録する」ボタン
@@ -78,13 +90,52 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     const secret = secretInput.value.trim();
     const name = document.getElementById('input-name').value.trim();
     const kuziName = document.getElementById('input-kuzi').value.trim();
-    const total = document.getElementById('input-total').value;
-    const winBefore = document.getElementById('input-winBefore').value;
+    const total = document.getElementById('input-total').value; // 空白許可
+    const winBefore = document.getElementById('input-winBefore').value; // 空白許可
     const draws = document.getElementById('input-draws').value;
     const winAfter = document.getElementById('input-winAfter').value;
 
-    if(!name || !kuziName || !total || !winBefore || !draws || !winAfter) {
-        return alert("すべての項目を入力してください");
+    // 必須項目のチェック（総数と当たり数は外す）
+    if(!name || !kuziName || !draws || !winAfter) {
+        return alert("名前、くじの名前、引いた回数、アタリの当選数は必須です");
+    }
+
+    // マイナス値のチェック
+    if (Number(draws) < 0 || Number(winAfter) < 0 || (total !== "" && Number(total) < 0) || (winBefore !== "" && Number(winBefore) < 0)) {
+        return alert("マイナスの値は入力できません");
+    }
+
+    const d = parseInt(draws, 10);
+    const wa = parseInt(winAfter, 10);
+
+    // 論理チェック1: 引いた回数より当たった数が多いのはNG
+    if (d < wa) {
+        return alert("値が正しくありません（引いた回数より、当たった数の方が多くなっています）");
+    }
+
+    // 論理チェック2: 引く前の総数が入力されている場合
+    if (total !== "") {
+        const t = parseInt(total, 10);
+        if (t < d) {
+            return alert("値が正しくありません（引く前の総数より、引いた回数の方が多くなっています）");
+        }
+    }
+
+    // 論理チェック3: 当たり数が入力されている場合
+    if (winBefore !== "") {
+        const wb = parseInt(winBefore, 10);
+        if (wb < wa) {
+            return alert("値が正しくありません（引く前のアタリの数より、アタリ当選数の方が多くなっています）");
+        }
+    }
+
+    // 論理チェック4: 総数と当たり数の両方が入力されている場合
+    if (total !== "" && winBefore !== "") {
+        const t = parseInt(total, 10);
+        const wb = parseInt(winBefore, 10);
+        if (t < wb) {
+            return alert("値が正しくありません（引く前の総数より、当たり数の方が多くなっています）");
+        }
     }
 
     const btn = document.getElementById('submit-btn');
@@ -102,7 +153,6 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     };
 
     try {
-        // POSTリクエストで書き込み（CORS回避のためtext/plainを使用）
         const res = await fetch(GAS_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
@@ -112,10 +162,10 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 
         if(json.status === "success") {
             alert("戦歴を記録しました！");
-            // 入力欄を空にする
-            document.getElementById('input-draws').value = "";
-            document.getElementById('input-winAfter').value = "";
-            // リストを再読み込み
+            
+            // ★以前ここにあった input-draws と input-winAfter を "" (空) にする処理を消去しました。
+            // これにより、送信後も全項目がそのまま保持されます。
+            
             loadHistory();
         } else {
             alert(json.message);
@@ -127,3 +177,167 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
         btn.disabled = false;
     }
 });
+// ==========================================
+// ランキング機能 (枠ごとに独立)
+// ==========================================
+let currentDataArray = [];
+
+// セレクトボックスの変更イベントをそれぞれ登録
+document.getElementById('ranking-god-type').addEventListener('change', renderGodRanking);
+document.getElementById('ranking-bad-type').addEventListener('change', renderBadRanking);
+
+// データをセットされた時にすべてのランキングを更新する関数
+function updateAllRankings(dataArray) {
+    currentDataArray = dataArray;
+    renderGodRanking();
+    renderBadRanking();
+    renderDrawsRanking();
+}
+
+// 王冠アイコンのヘルパー
+const getRankIcon = (index) => {
+    if(index === 0) return "🥇";
+    if(index === 1) return "🥈";
+    if(index === 2) return "🥉";
+    return `${index + 1}位`;
+};
+
+// 1. 神引きランキングの描画
+function renderGodRanking() {
+    const type = document.getElementById('ranking-god-type').value;
+    const content = document.getElementById('ranking-god-content');
+    content.innerHTML = "";
+
+    if (currentDataArray.length === 0) {
+        content.innerHTML = "<p style='font-size:13px; color:#666;'>データがありません。</p>";
+        return;
+    }
+
+    let html = "";
+    if (type === 'god-record') {
+        const sorted = [...currentDataArray].filter(d => Number(d['引いた回数']) > 0).sort((a, b) => {
+            const rateA = Number(a['当たった数']) / Number(a['引いた回数']);
+            const rateB = Number(b['当たった数']) / Number(b['引いた回数']);
+            if (rateB !== rateA) return rateB - rateA; 
+            return Number(b['引いた回数']) - Number(a['引いた回数']); 
+        });
+
+        sorted.slice(0, 3).forEach((d, i) => {
+            const rate = ((Number(d['当たった数']) / Number(d['引いた回数'])) * 100).toFixed(1);
+            html += `<div class="history-item" style="border-left-color: #ffc107; margin-bottom: 6px; padding: 6px 10px;">
+                <div class="title" style="font-size:14px;">${getRankIcon(i)} ${d['名前']} <span style="color:#d32f2f;">(勝率 ${rate}%)</span></div>
+                <div class="detail" style="font-size:12px; margin-top:2px;">${d['引いた回数']}回中 ${d['当たった数']}個 ｜ 🎁 ${d['引いたくじの名前']}</div>
+            </div>`;
+        });
+    } else {
+        const userStats = {};
+        currentDataArray.forEach(d => {
+            const name = d['名前'];
+            const draws = Number(d['引いた回数']) || 0;
+            const wins = Number(d['当たった数']) || 0;
+            if (!userStats[name]) userStats[name] = { name: name, totalDraws: 0, totalWins: 0 };
+            userStats[name].totalDraws += draws;
+            userStats[name].totalWins += wins;
+        });
+        const sorted = Object.values(userStats).filter(u => u.totalDraws > 0).sort((a, b) => {
+            const rateA = a.totalWins / a.totalDraws;
+            const rateB = b.totalWins / b.totalDraws;
+            if (rateB !== rateA) return rateB - rateA;
+            return b.totalDraws - a.totalDraws;
+        });
+
+        sorted.slice(0, 3).forEach((u, i) => {
+            const rate = ((u.totalWins / u.totalDraws) * 100).toFixed(1);
+            html += `<div class="history-item" style="border-left-color: #ffc107; margin-bottom: 6px; padding: 6px 10px;">
+                <div class="title" style="font-size:14px;">${getRankIcon(i)} ${u.name} <span style="color:#d32f2f;">(総合勝率 ${rate}%)</span></div>
+                <div class="detail" style="font-size:12px; margin-top:2px;">累計 ${u.totalDraws}回中 ${u.totalWins}個当選</div>
+            </div>`;
+        });
+    }
+    content.innerHTML = html || "<p style='font-size:13px; color:#666;'>該当データなし</p>";
+}
+
+// 2. 爆死ランキングの描画
+function renderBadRanking() {
+    const type = document.getElementById('ranking-bad-type').value;
+    const content = document.getElementById('ranking-bad-content');
+    content.innerHTML = "";
+
+    if (currentDataArray.length === 0) {
+        content.innerHTML = "<p style='font-size:13px; color:#666;'>データがありません。</p>";
+        return;
+    }
+
+    let html = "";
+    if (type === 'bad-record') {
+        const sorted = [...currentDataArray].filter(d => Number(d['引いた回数']) > 0).sort((a, b) => {
+            const rateA = Number(a['当たった数']) / Number(a['引いた回数']);
+            const rateB = Number(b['当たった数']) / Number(b['引いた回数']);
+            if (rateA !== rateB) return rateA - rateB;
+            return Number(b['引いた回数']) - Number(a['引いた回数']);
+        });
+
+        sorted.slice(0, 3).forEach((d, i) => {
+            const rate = ((Number(d['当たった数']) / Number(d['引いた回数'])) * 100).toFixed(1);
+            html += `<div class="history-item" style="border-left-color: #2196f3; background-color: #f4f8fc; margin-bottom: 6px; padding: 6px 10px;">
+                <div class="title" style="font-size:14px;">${getRankIcon(i)} ${d['名前']} <span style="color:#1976d2;">(勝率 ${rate}%)</span></div>
+                <div class="detail" style="font-size:12px; margin-top:2px;">${d['引いた回数']}回引いて ${d['当たった数']}個 ｜ 🎁 ${d['引いたくじの名前']}</div>
+            </div>`;
+        });
+    } else {
+        const userStats = {};
+        currentDataArray.forEach(d => {
+            const name = d['名前'];
+            const draws = Number(d['引いた回数']) || 0;
+            const wins = Number(d['当たった数']) || 0;
+            if (!userStats[name]) userStats[name] = { name: name, totalDraws: 0, totalWins: 0 };
+            userStats[name].totalDraws += draws;
+            userStats[name].totalWins += wins;
+        });
+        const sorted = Object.values(userStats).filter(u => u.totalDraws > 0).sort((a, b) => {
+            const rateA = a.totalWins / a.totalDraws;
+            const rateB = b.totalWins / b.totalDraws;
+            if (rateA !== rateB) return rateA - rateB;
+            return b.totalDraws - a.totalDraws;
+        });
+
+        sorted.slice(0, 3).forEach((u, i) => {
+            const rate = ((u.totalWins / u.totalDraws) * 100).toFixed(1);
+            html += `<div class="history-item" style="border-left-color: #2196f3; background-color: #f4f8fc; margin-bottom: 6px; padding: 6px 10px;">
+                <div class="title" style="font-size:14px;">${getRankIcon(i)} ${u.name} <span style="color:#1976d2;">(総合勝率 ${rate}%)</span></div>
+                <div class="detail" style="font-size:12px; margin-top:2px;">累計 ${u.totalDraws}回引いて ${u.totalWins}個</div>
+            </div>`;
+        });
+    }
+    content.innerHTML = html || "<p style='font-size:13px; color:#666;'>該当データなし</p>";
+}
+
+// 3. 引きすぎ選手権の描画
+function renderDrawsRanking() {
+    const content = document.getElementById('ranking-draws-content');
+    content.innerHTML = "";
+
+    if (currentDataArray.length === 0) {
+        content.innerHTML = "<p style='font-size:13px; color:#666;'>データがありません。</p>";
+        return;
+    }
+
+    const userStats = {};
+    currentDataArray.forEach(d => {
+        const name = d['名前'];
+        const draws = Number(d['引いた回数']) || 0;
+        if (!userStats[name]) userStats[name] = { name: name, totalDraws: 0 };
+        userStats[name].totalDraws += draws;
+    });
+    const sorted = Object.values(userStats).filter(u => u.totalDraws > 0).sort((a, b) => b.totalDraws - a.totalDraws);
+
+    let html = "";
+    sorted.slice(0, 3).forEach((u, i) => {
+        html += `<div class="history-item" style="border-left-color: #4caf50; background-color: #f1f8e9; margin-bottom: 6px; padding: 6px 10px;">
+            <div class="title" style="font-size:14px;">${getRankIcon(i)} ${u.name} <span style="color:#388e3c;">(総引回数 ${u.totalDraws}回)</span></div>
+            <div class="detail" style="font-size:12px; margin-top:2px;">一番くじスポンサー候補</div>
+        </div>`;
+    });
+
+    content.innerHTML = html || "<p style='font-size:13px; color:#666;'>該当データなし</p>";
+}
