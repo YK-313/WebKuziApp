@@ -1,0 +1,76 @@
+<!-- index.html (旧: kuzi.html) -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>一番くじ期待値計算</title>
+    <!-- CSSを読み込む -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>一番くじ期待値計算</h1>
+    <p>
+        <a href="https://1kuji.com/products" target="_blank" rel="noopener noreferrer">
+            一番くじのラインナップを見る（公式サイト）
+        </a><br><br>
+         <a href="kuzigyakusan.html">期待値から逆算したい方はこちら</a>
+    </p>
+    
+    <!-- アニメーション画像 (imagesフォルダを作成して配置してください) -->
+    <img src="images/slot.gif" alt="アニメーション" /> 
+
+    <!-- formの送信(action)をやめ、ボタンのonclickでJavaScriptを呼び出す -->
+    <div>
+        残りくじ総数: <input id="total" type="number" value="80"><br>
+        当たり枚数: <input id="atari" type="number" value="2"><br>
+        購入数: <input id="buy" type="number" value="10"><br>
+        <button type="button" onclick="addAmount(5)">購入数+5</button>
+        <button type="button" onclick="addAmount(10)">購入数+10</button>
+        <button type="button" onclick="addReset()">購入数リセット</button><br>
+        <button type="button" onclick="calculateProbabilities()">計算する</button>
+    </div>
+
+    <!-- エラーメッセージ表示領域 -->
+    <div id="error-message" style="color: red; margin-bottom: 10px; font-weight:bold;"></div>
+
+    <!-- 結果表示部分 (最初は非表示) -->
+    <div id="result-area" style="display: none;">
+        <h2>1枚以上当たる確率：<span id="res-pa">0</span>%</h2>
+
+        <p class="compact">残りくじ総数 : <span id="res-total">0</span></p>
+        <p class="compact">あたり枚数 : <span id="res-atari">0</span></p>
+        <p class="compact">購入数 : <span id="res-buy">0</span></p>
+
+        <h2>n枚当たる確率</h2>
+
+        <div>
+            小数点以下表示桁数：
+            <button type="button" onclick="updateDecimalPlaces(1)">1桁</button>
+            <button type="button" onclick="updateDecimalPlaces(2)">2桁</button>
+            <button type="button" onclick="updateDecimalPlaces(3)">3桁</button>
+            <button type="button" onclick="updateDecimalPlaces(4)">4桁</button>
+            <button type="button" onclick="updateDecimalPlaces(5)">5桁</button><br>
+            <button type="button" onclick="updateDecimalPlaces(6)">6桁</button>
+            <button type="button" onclick="updateDecimalPlaces(7)">7桁</button>
+            <button type="button" onclick="updateDecimalPlaces(8)">8桁</button>
+            <button type="button" onclick="updateDecimalPlaces(9)">9桁</button>
+            <button type="button" onclick="updateDecimalPlaces(10)">10桁</button>
+        </div>
+
+        <table class="center-table" border="1">
+            <thead>
+                <tr>
+                    <th>当たり枚数 (n)</th>
+                    <th>確率</th>
+                </tr>
+            </thead>
+            <tbody id="res-tbody">
+                <!-- JavaScriptでここに結果行が挿入されます -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- JavaScriptを読み込む -->
+    <script src="kuzi.js"></script>
+</body>
+</html>

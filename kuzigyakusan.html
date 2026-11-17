@@ -1,0 +1,85 @@
+<!-- kuzigyakusan.html (旧: KuziGyakusan.html) -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>一番くじ期待値計算（逆算）</title> 
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Chart.jsの読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+      main { width: 100%; display: flex; justify-content: center; }
+      #js-result { display: flex; flex-wrap: wrap; width: 50%; gap: 20px; justify-content: center; }
+      canvas { flex: 1 0 48%; max-width: 100%; height: 50vh; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>購入枚数ごとの期待値</h1>
+    <p>
+        <a href="https://1kuji.com/products" target="_blank" rel="noopener noreferrer">
+            一番くじのラインナップを見る（公式サイト）
+        </a><br><br>
+        <a href="index.html">購入枚数から期待値を計算したい方はこちら</a>
+    </p>
+    
+     <!-- アニメーション画像 (imagesフォルダを作成して配置してください) -->
+    <img src="images/slot.gif" alt="アニメーション" /> 
+    
+    <!-- フォーム送信を廃止し、JavaScript呼び出しに変更 -->
+    <div>
+        残りくじ総数: <input id="gyaku-total" type="number" value="80"><br>
+        当たり枚数: <input id="gyaku-atari" type="number" value="2"><br>
+        小数点以下の計算桁数: <input id="gyaku-digits" type="number" value="4"><br>
+        <button type="button" onclick="calculateGyakusan()">計算する</button>
+    </div>
+    
+    <div id="error-message" style="color: red; margin-bottom: 10px; font-weight:bold;"></div>
+
+    <!-- 結果表示エリア (最初は非表示) -->
+    <div id="result-area" style="display: none;">
+        <h2>主要な期待値</h2>
+        <table class="center-table" border="1">
+            <thead>
+                <tr>
+                    <th>購入数</th>
+                    <th>あたりが一つ以上出る確率</th>
+                </tr>
+            </thead>
+            <tbody id="key-probs-tbody">
+                <!-- JavaScriptで挿入 -->
+            </tbody>
+        </table>
+        
+        <main>
+            <div id="js-result">
+                <!-- グラフ描画用キャンバス -->
+                <canvas id="gyakuChart"></canvas>
+            </div>
+        </main>
+        
+        <details>
+            <summary style="cursor: pointer; font-weight: bold; padding: 5px;">
+                各購入数における詳細な確率を表示
+            </summary>
+            <p>
+                <table class="center-table" border="1">
+                    <thead>
+                        <tr>
+                            <th>購入数</th>
+                            <th>あたりが一つ以上出る確率</th>
+                        </tr>
+                    </thead>
+                    <tbody id="all-probs-tbody">
+                        <!-- JavaScriptで挿入 -->
+                    </tbody>
+                </table>
+            </p>
+        </details>
+    </div>
+
+    <!-- 処理スクリプトの読み込み -->
+    <script src="kuzigyakusan.js"></script>
+</body>
+</html>
